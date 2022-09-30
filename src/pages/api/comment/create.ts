@@ -22,15 +22,6 @@ export default async function submit(
 ) {
   const { method } = req;
 
-  if (process.env.NODE_ENV == 'production') {
-    if (!req.headers.referer?.includes(`${process.env.NEXTAUTH_URL}`))
-      return res
-        .status(403)
-        .end(
-          'Referer check failed; Origin does not match trusted origin list.'
-        );
-  }
-
   switch (method) {
     case 'POST':
       return handlePOST(req, res);

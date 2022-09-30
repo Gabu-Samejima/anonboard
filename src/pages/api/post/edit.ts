@@ -21,19 +21,7 @@ export default async function submit(
   res: NextApiResponse
 ) {
   const { method } = req;
-
-  if (process.env.NODE_ENV == 'production') {
-    if (
-      !req.headers.referer?.includes(`${process.env.NEXTAUTH_URL}`) ||
-      !req.headers.referer?.includes(`https://cfboard.apap04.com/`)
-    )
-      return res
-        .status(403)
-        .end(
-          'Referer check failed; Origin does not match trusted origin list.'
-        );
-  }
-
+  
   switch (method) {
     case 'POST':
       return handlePOST(req, res);
