@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  ipAddress     String
+  image         String?
+  // posts         Post[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PB_AnonymousPoster {
+  id             String           @id
+  ipAddress      String
+  posts          PB_Post[]
+  aliases        PB_Alias?        @relation(fields: [aliasPosterId], references: [posterId])
+  aliasPosterId  String?
+  revisions      PB_Revision[]
+  PB_Report      PB_Report[]
+  PB_UserRequest PB_UserRequest[]
+  PB_Comment     PB_Comment[]
+}
+
+model PB_Alias {
+  posterId        String               @id
+  name            String
+  AnonymousPoster PB_AnonymousPoster[]
+}
+
+model PB_Post {
+  id                String             @id
+  editCode          String?
+  datePublished     DateTime           @default(now()) @db.Timestamp(6)
+  lastEdited        DateTime?          @updatedAt @db.Timestamp(6)
+  pastRevisions     PB_Revision[]
+  title             String
+  content           String
+  comments          PB_Comment[]
+  year              Int?               @default(1)
+  flagged           Boolean?           @default(false)
+  deleted           Boolean?           @default(false)
+  // User          User?      @relation(fields: [creatorId], references: [id])
+  // creatorId     String?
+  AnonymousPoster   PB_AnonymousPoster @relation(fields: [anonymousPosterId], references: [id])
+  anonymousPosterId String
+  PB_Report         PB_Report[]
+}
+
+model PB_Comment {
+  id          String             @id
+  commenter   PB_AnonymousPoster @relation(fields: [pB_AnonymousPosterId], references: [id])
+  postId      PB_Post            @relation(fields: [pB_PostId], references: [id])
+  content     String
+  dateCreated DateTime           @default(now()) @db.Timestamp(6)
+  lastEdited  DateTime?          @updatedAt @db.Timestamp(6)
+
+  pB_AnonymousPosterId String
+  pB_PostId            String
+}
+
+model PB_Revision {
+  revisionId           String             @id
+  who                  PB_AnonymousPoster @relation(fields: [pB_AnonymousPosterId], references: [id])
+  oldTitle             String
+  newTitle             String
+  oldContent           String
+  newContent           String
+  Post                 PB_Post?           @relation(fields: [postId], references: [id])
+  postId               String?
+  pB_AnonymousPosterId String
+}
+
+model PB_Report {
+  reportId      Int                @id @default(autoincrement())
+  reportReason  Int // Enum value
+  reportDetails String?
+  postId        String
+  Post          PB_Post            @relation(fields: [postId], references: [id])
+  reporter      PB_AnonymousPoster @relation(fields: [reporterId], references: [id])
+  reporterId    String
+}
+
+model PB_UserRequest {
+  id      String             @id
+  visitor PB_AnonymousPoster @relation(fields: [visitorId], references: [id])
+  pathTo  String
+
+  visitorId String
+}
